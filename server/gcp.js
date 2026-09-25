@@ -119,8 +119,10 @@ async function getBuildLogTail(buildId, limit = 200) {
     .reverse();
 }
 
-// Built APKs live at gs://BUCKET/<branch>/<short-sha>/app-release.apk
-// (matching infra/cloudbuild.yaml's artifacts.objects.location).
+// Built APKs live at gs://BUCKET/[<any prefix>/]<branch>/<short-sha>/app-release.apk
+// (matching infra/cloudbuild.yaml's artifacts.objects.location — the
+// prefix itself, e.g. "apk/", doesn't matter here: branch and commit are
+// read off the last three path segments, whatever sits in front of them).
 async function listApks(limit = 50) {
   const [files] = await storage.bucket(config.apkBucket).getFiles({
     matchGlob: "**/*.apk",
@@ -129,11 +131,12 @@ async function listApks(limit = 50) {
   files.sort((a, b) => new Date(b.metadata.updated) - new Date(a.metadata.updated));
 
   return files.slice(0, limit).map((f) => {
-    const parts = f.name.split("/"); // <branch>/<sha>/app-release.apk
+    const parts = f.name.split("/"); // [...prefix/]<branch>/<sha>/app-release.apk
+    const n = parts.length;
     return {
       path: f.name,
-      branch: parts.length >= 3 ? parts[0] : null,
-      sha: parts.length >= 3 ? parts[1] : null,
+      branch: n >= 3 ? parts[n - 3] : null,
+      sha: n >= 3 ? parts[n - 2] : null,
       size: Number(f.metadata.size),
       updated: f.metadata.updated,
     };
