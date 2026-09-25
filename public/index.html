@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UniForge · Pipelines</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+  <h1>UniForge · Commit-to-APK pipeline</h1>
+  <div class="row" style="gap: 12px;">
+    <select id="branch-select" style="height: 40px; border-radius: 10px; border: 1px solid var(--border); padding: 0 10px; font-family: inherit;">
+      <option value="main">main</option>
+      <option value="develop">develop</option>
+    </select>
+    <button id="run-build" class="primary">Run build now</button>
+  </div>
+  <div class="who">
+    <img id="who-pic" src="" alt="" hidden>
+    <span id="who-email"></span>
+    <a class="logout" href="/auth/logout">Sign out</a>
+  </div>
+</header>
+
+<main>
+  <div id="global-error" class="error-banner" hidden></div>
+
+  <section class="card">
+    <h2 class="section-title">Recent builds</h2>
+    <table>
+      <thead>
+        <tr><th>Build</th><th>Branch</th><th>Commit</th><th>Started</th><th>Duration</th><th>Status</th></tr>
+      </thead>
+      <tbody id="builds-body">
+        <tr><td colspan="6" class="empty">Loading builds…</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Built APKs</h2>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Branch</th><th>Commit</th><th>Size</th><th>Built</th><th></th></tr>
+      </thead>
+      <tbody id="apks-body">
+        <tr><td colspan="6" class="empty">Loading APKs…</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<div id="log-modal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <header>
+      <span id="log-title" class="mono" style="font-size: 13px;"></span>
+      <button class="close" id="log-close">Close</button>
+    </header>
+    <div class="log mono" id="log-body">Loading log…</div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
