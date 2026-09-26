@@ -34,9 +34,54 @@ header .who { display: flex; align-items: center; gap: 10px; font-size: 13.5px; 
 header img { width: 28px; height: 28px; border-radius: 50%; }
 header a.logout { color: var(--accent); font-size: 13.5px; text-decoration: none; }
 
-main { padding: 28px 32px 48px; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
-
 .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+.app-layout { display: flex; align-items: flex-start; max-width: 1400px; margin: 0 auto; }
+
+#sidebar {
+  flex: 0 0 180px;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 28px 16px;
+  position: sticky; top: 0;
+}
+#sidebar .nav-item {
+  border: none; background: transparent; box-shadow: none;
+  justify-content: flex-start; height: 38px; padding: 0 12px;
+  color: var(--muted); font-weight: 600; border-radius: 8px;
+}
+#sidebar .nav-item:hover { background: #ECE8DE; color: var(--ink); }
+#sidebar .nav-item.active { background: var(--card); color: var(--accent); border: 1px solid var(--border); }
+
+.app-content { flex: 1 1 auto; min-width: 0; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 28px; }
+#view-builds { display: flex; flex-direction: column; gap: 28px; }
+
+.repo-panes { display: flex; gap: 20px; align-items: flex-start; }
+.commit-list-card { flex: 0 0 340px; display: flex; flex-direction: column; max-height: 78vh; }
+.commit-list-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 20px 20px 4px; }
+.commit-list-header .section-title { padding: 0; }
+#branch-select { height: 32px; border-radius: 8px; border: 1px solid var(--border); padding: 0 8px; font-size: 12.5px; background: #fff; color: var(--ink); max-width: 150px; }
+.commit-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.commit-list li.commit-row { padding: 12px 20px; border-top: 1px solid var(--border); cursor: pointer; }
+.commit-list li.commit-row:first-child { border-top: none; }
+.commit-list li.commit-row:hover { background: #FAF8F3; }
+.commit-list li.commit-row.active { background: var(--run-bg); }
+.commit-list .commit-subject { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+.commit-list .commit-meta { font-size: 12px; color: var(--muted); }
+.commit-list-footer { padding: 12px 20px; }
+.commit-list-footer .btn { width: 100%; justify-content: center; }
+
+.commit-diff-card { flex: 1 1 auto; min-width: 0; background: #0F1217; color: #C9CDD4; border-radius: 14px; padding: 20px; max-height: 78vh; overflow-y: auto; }
+.commit-diff-header { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #232833; }
+.commit-diff-header .subject { color: #fff; font-weight: 600; margin-bottom: 6px; }
+.commit-diff-header .meta { font-size: 12.5px; color: #7C8390; }
+.diff-file { margin-bottom: 20px; }
+.diff-file-header { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; color: #9AA1AD; padding: 6px 10px; background: #171B22; border-radius: 6px 6px 0 0; }
+.diff-lines { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; border-radius: 0 0 6px 6px; overflow: hidden; }
+.diff-line { padding: 0 10px; white-space: pre; }
+.diff-line.add { background: #0b2e1a; color: #8FE3A6; }
+.diff-line.remove { background: #3a1414; color: #F0A3A3; }
+.diff-line.hunk { color: #7C8390; background: #171B22; }
+.diff-line.context { color: #C9CDD4; }
 
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
 
@@ -75,6 +120,7 @@ tr.clickable:hover td { background: #FAF8F3; }
   position: fixed; inset: 0; background: rgba(22,24,29,.45);
   display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 20;
 }
+.modal-backdrop[hidden] { display: none; }
 .modal { background: #0F1217; color: #C9CDD4; border-radius: 14px; width: min(860px, 100%); max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
 .modal header { border-bottom: 1px solid #232833; color: #fff; }
 .modal .log { padding: 16px 20px; overflow-y: auto; font-size: 12.5px; line-height: 1.7; white-space: pre-wrap; }

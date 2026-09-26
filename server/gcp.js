@@ -8,13 +8,10 @@
 // service's attached service account. No keys are stored by this app.
 
 const { google } = require("googleapis");
-const { GoogleAuth } = require("google-auth-library");
 const { Storage } = require("@google-cloud/storage");
 const { Logging } = require("@google-cloud/logging");
 const config = require("./config");
-
-const SCOPES = ["https://www.googleapis.com/auth/cloud-platform"];
-const auth = new GoogleAuth({ scopes: SCOPES });
+const { auth } = require("./googleAuth");
 
 const storage = new Storage({ projectId: config.projectId });
 const logging = new Logging({ projectId: config.projectId });
@@ -82,7 +79,7 @@ async function getBuild(buildId) {
 
 // Manually fires the configured trigger against a branch, same as a real
 // push would — this is what the dashboard's "Run build now" button calls.
-async function runTrigger(branch = "main") {
+async function runTrigger(branch = "testing") {
   if (!config.triggerId) {
     throw new Error("CLOUD_BUILD_TRIGGER_ID is not set — can't run a trigger manually.");
   }
@@ -97,9 +94,15 @@ async function runTrigger(branch = "main") {
 }
 
 async function getBuildLogTail(buildId, limit = 200) {
+  // Scope to the actual build log stream. Without a logName filter,
+  // resource.type="build" also matches Cloud Audit Log entries for the same
+  // build (e.g. cloudaudit.googleapis.com/activity), which carry a raw
+  // protoPayload rather than text and would otherwise show up as unreadable
+  // serialized-buffer JSON in the log tail.
   const filter = [
     'resource.type="build"',
     `resource.labels.build_id="${buildId}"`,
+    `logName="projects/${config.projectId}/logs/cloudbuild"`,
   ].join(" AND ");
 
   const [entries] = await logging.getEntries({
@@ -109,12 +112,10 @@ async function getBuildLogTail(buildId, limit = 200) {
   });
 
   return entries
+    .filter((e) => typeof e.data === "string")
     .map((e) => ({
       timestamp: e.metadata.timestamp,
-      text:
-        typeof e.data === "string"
-          ? e.data
-          : e.data?.textPayload || JSON.stringify(e.data),
+      text: e.data,
     }))
     .reverse();
 }

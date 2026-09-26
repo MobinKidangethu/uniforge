@@ -4,6 +4,7 @@ const cookieSession = require("cookie-session");
 const config = require("./config");
 const { router: authRouter, requireAuth } = require("./auth");
 const gcp = require("./gcp");
+const repo = require("./repo");
 
 const app = express();
 app.use(express.json());
@@ -58,7 +59,7 @@ app.get("/api/builds/:id/logs", async (req, res) => {
 
 app.post("/api/builds/trigger", async (req, res) => {
   try {
-    const branch = req.body?.branch || "main";
+    const branch = req.body?.branch || "testing";
     res.json(await gcp.runTrigger(branch));
   } catch (err) {
     console.error(err);
@@ -84,6 +85,41 @@ app.get("/api/apks/download", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(502).json({ error: "signed_url_failed", message: err.message });
+  }
+});
+
+app.get("/api/repo/branches", async (req, res) => {
+  try {
+    res.json(await repo.listBranches());
+  } catch (err) {
+    console.error(err);
+    res.status(502).json({ error: "branch_list_failed", message: err.message });
+  }
+});
+
+app.get("/api/repo/commits", async (req, res) => {
+  try {
+    res.json(
+      await repo.listCommits({ branch: req.query.branch, skip: req.query.skip, limit: req.query.limit })
+    );
+  } catch (err) {
+    if (err.status === 400) {
+      return res.status(400).json({ error: "invalid_branch", message: err.message });
+    }
+    console.error(err);
+    res.status(502).json({ error: "commit_list_failed", message: err.message });
+  }
+});
+
+app.get("/api/repo/commits/:sha", async (req, res) => {
+  try {
+    res.json(await repo.getCommitDiff(req.params.sha));
+  } catch (err) {
+    if (err.status === 404) {
+      return res.status(404).json({ error: "commit_not_found", message: err.message });
+    }
+    console.error(err);
+    res.status(502).json({ error: "commit_diff_failed", message: err.message });
   }
 });
 

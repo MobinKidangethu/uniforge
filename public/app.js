@@ -32,6 +32,10 @@ function statusLabel(status) {
   return { SUCCESS: "Succeeded", FAILURE: "Failed", TIMEOUT: "Timed out", WORKING: "Running", QUEUED: "Queued", CANCELLED: "Cancelled" }[status] || status;
 }
 
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 function showError(msg) {
   const el = $("#global-error");
   el.textContent = msg;
@@ -73,13 +77,13 @@ async function loadBuilds() {
     tbody.innerHTML = builds
       .map(
         (b) => `
-      <tr class="clickable" data-build-id="${b.id}">
-        <td class="mono">${b.id.slice(0, 8)}</td>
-        <td class="mono">${b.branch || "—"}</td>
-        <td class="mono">${b.sha || "—"}</td>
+      <tr class="clickable" data-build-id="${esc(b.id)}">
+        <td class="mono">${esc(b.id.slice(0, 8))}</td>
+        <td class="mono">${esc(b.branch) || "—"}</td>
+        <td class="mono">${esc(b.sha) || "—"}</td>
         <td>${fmtRelative(b.createTime)}</td>
         <td class="mono">${fmtDuration(b.startTime, b.finishTime)}</td>
-        <td><span class="pill ${b.status}">${statusLabel(b.status)}</span></td>
+        <td><span class="pill ${esc(b.status)}">${esc(statusLabel(b.status))}</span></td>
       </tr>`
       )
       .join("");
@@ -103,9 +107,9 @@ async function loadApks() {
       .map(
         (a) => `
       <tr>
-        <td class="mono">${a.path.split("/").pop()}</td>
-        <td class="mono">${a.branch || "—"}</td>
-        <td class="mono">${a.sha || "—"}</td>
+        <td class="mono">${esc(a.path.split("/").pop())}</td>
+        <td class="mono">${esc(a.branch) || "—"}</td>
+        <td class="mono">${esc(a.sha) || "—"}</td>
         <td>${fmtSize(a.size)}</td>
         <td>${fmtRelative(a.updated)}</td>
         <td><button class="download" data-path="${encodeURIComponent(a.path)}">Download</button></td>
@@ -146,22 +150,144 @@ async function openLog(buildId) {
   }
 }
 
+let commitsLoaded = false;
+let commitSkip = 0;
+let currentBranch = null;
+const COMMIT_PAGE_SIZE = 30;
+
+async function loadBranches() {
+  const select = $("#branch-select");
+  try {
+    const branches = await api("/api/repo/branches");
+    const preferred = branches.find((b) => b.name === "testing") || branches[0];
+    select.innerHTML = branches
+      .map((b) => `<option value="${esc(b.name)}">${esc(b.name)}</option>`)
+      .join("");
+    if (preferred) select.value = preferred.name;
+    currentBranch = select.value;
+  } catch (err) {
+    select.innerHTML = `<option>—</option>`;
+    showError(`Couldn't load branches: ${err.message}`);
+  }
+}
+
+$("#branch-select").addEventListener("change", () => {
+  currentBranch = $("#branch-select").value;
+  $("#commit-diff").innerHTML = `<div class="empty">Select a commit to view its changes.</div>`;
+  loadCommits();
+});
+
+function diffLineClass(line) {
+  if (line.startsWith("@@")) return "hunk";
+  if (line.startsWith("+")) return "add";
+  if (line.startsWith("-")) return "remove";
+  return "context";
+}
+
+function renderDiffFile(file) {
+  const bodyLines = file.patch
+    .split("\n")
+    .filter((l) => !l.startsWith("diff --git") && !l.startsWith("index "));
+  const lines = bodyLines
+    .map((l) => `<div class="diff-line ${diffLineClass(l)}">${esc(l) || "&nbsp;"}</div>`)
+    .join("");
+  return `
+    <div class="diff-file">
+      <div class="diff-file-header">${esc(file.path)} <span class="mono">(${esc(file.status)})</span></div>
+      <div class="diff-lines">${lines}</div>
+    </div>`;
+}
+
+async function loadCommitDiff(sha) {
+  const panel = $("#commit-diff");
+  panel.innerHTML = `<div class="empty">Loading diff…</div>`;
+  document.querySelectorAll("#commit-list li.commit-row").forEach((li) => {
+    li.classList.toggle("active", li.dataset.sha === sha);
+  });
+  try {
+    const commit = await api(`/api/repo/commits/${sha}`);
+    if (commit.truncated) {
+      panel.innerHTML = `<div class="empty">This commit's diff is too large to display here.</div>`;
+      return;
+    }
+    const header = `
+      <div class="commit-diff-header">
+        <div class="subject">${esc(commit.subject)}</div>
+        <div class="meta mono">${esc(commit.sha.slice(0, 10))} · ${esc(commit.author)} · ${fmtRelative(commit.date)}</div>
+      </div>`;
+    const files = commit.files.length
+      ? commit.files.map(renderDiffFile).join("")
+      : `<div class="empty">No file changes.</div>`;
+    panel.innerHTML = header + files;
+  } catch (err) {
+    panel.innerHTML = `<div class="empty">Couldn't load diff: ${esc(err.message)}</div>`;
+  }
+}
+
+async function loadCommits(reset = true) {
+  const list = $("#commit-list");
+  const loadMoreBtn = $("#load-more-commits");
+  if (reset) {
+    commitSkip = 0;
+    list.innerHTML = `<li class="empty">Loading commits…</li>`;
+  }
+  try {
+    const branch = encodeURIComponent(currentBranch || "");
+    const commits = await api(`/api/repo/commits?branch=${branch}&skip=${commitSkip}&limit=${COMMIT_PAGE_SIZE}`);
+    if (reset) list.innerHTML = "";
+    if (!commits.length && reset) {
+      list.innerHTML = `<li class="empty">No commits found.</li>`;
+    } else {
+      list.insertAdjacentHTML(
+        "beforeend",
+        commits
+          .map(
+            (c) => `
+        <li class="commit-row" data-sha="${esc(c.sha)}">
+          <div class="commit-subject">${esc(c.subject)}</div>
+          <div class="commit-meta mono">${esc(c.shortSha)} · ${esc(c.author)} · ${fmtRelative(c.date)}</div>
+        </li>`
+          )
+          .join("")
+      );
+    }
+    list.querySelectorAll("li.commit-row").forEach((li) => {
+      li.onclick = () => loadCommitDiff(li.dataset.sha);
+    });
+    commitSkip += commits.length;
+    loadMoreBtn.hidden = commits.length < COMMIT_PAGE_SIZE;
+  } catch (err) {
+    if (reset) list.innerHTML = `<li class="empty">Couldn't load commits: ${esc(err.message)}</li>`;
+  }
+}
+
+$("#load-more-commits").addEventListener("click", () => loadCommits(false));
+
+function switchView(view) {
+  $("#view-builds").hidden = view !== "builds";
+  $("#view-repo").hidden = view !== "repo";
+  $("#nav-builds").classList.toggle("active", view === "builds");
+  $("#nav-repo").classList.toggle("active", view === "repo");
+  if (view === "repo" && !commitsLoaded) {
+    commitsLoaded = true;
+    loadBranches().then(loadCommits);
+  }
+}
+
+$("#nav-builds").addEventListener("click", () => switchView("builds"));
+$("#nav-repo").addEventListener("click", () => switchView("repo"));
+
 $("#log-close").addEventListener("click", () => ($("#log-modal").hidden = true));
 $("#log-modal").addEventListener("click", (e) => {
   if (e.target === $("#log-modal")) $("#log-modal").hidden = true;
 });
 
 $("#run-build").addEventListener("click", async () => {
-  const branch = $("#branch-select").value;
   const btn = $("#run-build");
   btn.disabled = true;
   btn.textContent = "Starting…";
   try {
-    await api("/api/builds/trigger", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ branch }),
-    });
+    await api("/api/builds/trigger", { method: "POST" });
     await loadBuilds();
   } catch (err) {
     showError(`Couldn't start a build: ${err.message}`);

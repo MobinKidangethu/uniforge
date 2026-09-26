@@ -14,6 +14,9 @@ module.exports = {
   apkBucket: required("GCP_APK_BUCKET"),
   triggerId: process.env.CLOUD_BUILD_TRIGGER_ID || null,
 
+  repoName: process.env.GCP_SOURCE_REPO || "MTPC-rewamp",
+  repoBranch: process.env.GCP_SOURCE_REPO_BRANCH || "testing",
+
   oauthClientId: required("GOOGLE_OAUTH_CLIENT_ID"),
   oauthClientSecret: required("GOOGLE_OAUTH_CLIENT_SECRET"),
   oauthRedirectUri: required("GOOGLE_OAUTH_REDIRECT_URI"),

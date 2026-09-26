@@ -10,10 +10,7 @@
 <header>
   <h1>UniForge · Commit-to-APK pipeline</h1>
   <div class="row" style="gap: 12px;">
-    <select id="branch-select" style="height: 40px; border-radius: 10px; border: 1px solid var(--border); padding: 0 10px; font-family: inherit;">
-      <option value="main">main</option>
-      <option value="develop">develop</option>
-    </select>
+    <span class="mono" style="color: var(--muted); font-size: 13.5px;">testing</span>
     <button id="run-build" class="primary">Run build now</button>
   </div>
   <div class="who">
@@ -23,33 +20,62 @@
   </div>
 </header>
 
-<main>
-  <div id="global-error" class="error-banner" hidden></div>
+<div class="app-layout">
+  <nav id="sidebar">
+    <button class="nav-item active" id="nav-builds" data-view="builds">Builds</button>
+    <button class="nav-item" id="nav-repo" data-view="repo">Repository</button>
+  </nav>
 
-  <section class="card">
-    <h2 class="section-title">Recent builds</h2>
-    <table>
-      <thead>
-        <tr><th>Build</th><th>Branch</th><th>Commit</th><th>Started</th><th>Duration</th><th>Status</th></tr>
-      </thead>
-      <tbody id="builds-body">
-        <tr><td colspan="6" class="empty">Loading builds…</td></tr>
-      </tbody>
-    </table>
-  </section>
+  <div class="app-content">
+    <div id="global-error" class="error-banner" hidden></div>
 
-  <section class="card">
-    <h2 class="section-title">Built APKs</h2>
-    <table>
-      <thead>
-        <tr><th>File</th><th>Branch</th><th>Commit</th><th>Size</th><th>Built</th><th></th></tr>
-      </thead>
-      <tbody id="apks-body">
-        <tr><td colspan="6" class="empty">Loading APKs…</td></tr>
-      </tbody>
-    </table>
-  </section>
-</main>
+    <section id="view-builds">
+      <section class="card">
+        <h2 class="section-title">Recent builds</h2>
+        <table>
+          <thead>
+            <tr><th>Build</th><th>Branch</th><th>Commit</th><th>Started</th><th>Duration</th><th>Status</th></tr>
+          </thead>
+          <tbody id="builds-body">
+            <tr><td colspan="6" class="empty">Loading builds…</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">Built APKs</h2>
+        <table>
+          <thead>
+            <tr><th>File</th><th>Branch</th><th>Commit</th><th>Size</th><th>Built</th><th></th></tr>
+          </thead>
+          <tbody id="apks-body">
+            <tr><td colspan="6" class="empty">Loading APKs…</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </section>
+
+    <section id="view-repo" hidden>
+      <div class="repo-panes">
+        <div class="card commit-list-card">
+          <div class="commit-list-header">
+            <h2 class="section-title">Commits</h2>
+            <select id="branch-select" class="mono"></select>
+          </div>
+          <ul id="commit-list" class="commit-list">
+            <li class="empty">Loading commits…</li>
+          </ul>
+          <div class="commit-list-footer">
+            <button id="load-more-commits" class="btn" hidden>Load more</button>
+          </div>
+        </div>
+        <div class="card commit-diff-card" id="commit-diff">
+          <div class="empty">Select a commit to view its changes.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
 
 <div id="log-modal" class="modal-backdrop" hidden>
   <div class="modal">
